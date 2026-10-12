@@ -3,7 +3,10 @@ import jwt from "jsonwebtoken";
 
 import UserModal from "../models/user.js";
 
-const secret = 'test';
+const secret = process.env.JWT_SECRET || 'dev-only-secret';
+
+// Never send the password hash back to the client.
+const publicUser = ({ _id, name, email }) => ({ _id, id: _id, name, email });
 
 export const signin = async (req, res) => {
   const { email, password } = req.body;
@@ -19,7 +22,7 @@ export const signin = async (req, res) => {
 
     const token = jwt.sign({ email: oldUser.email, id: oldUser._id }, secret, { expiresIn: "1h" });
 
-    res.status(200).json({ result: oldUser, token });
+    res.status(200).json({ result: publicUser(oldUser), token });
   } catch (err) {
     res.status(500).json({ message: "Something went wrong" });
   }
@@ -39,7 +42,7 @@ export const signup = async (req, res) => {
 
     const token = jwt.sign( { email: result.email, id: result._id }, secret, { expiresIn: "1h" } );
 
-    res.status(201).json({ result, token });
+    res.status(201).json({ result: publicUser(result), token });
   } catch (error) {
     res.status(500).json({ message: "Something went wrong" });
     

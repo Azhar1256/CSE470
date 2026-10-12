@@ -1,27 +1,18 @@
 import jwt from "jsonwebtoken";
 
-const secret = 'test';
+const secret = process.env.JWT_SECRET || 'dev-only-secret';
 
-const auth = async (req, res, next) => {
+// Only tokens signed by this server are accepted. Unverified (e.g. Google) tokens are
+// rejected: decoding them without checking the signature would let anyone forge a user.
+const auth = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "Not signed in" });
+
   try {
-    const token = req.headers.authorization.split(" ")[1];
-    const isCustomAuth = token.length < 500;
-
-    let decodedData;
-
-    if (token && isCustomAuth) {      
-      decodedData = jwt.verify(token, secret);
-
-      req.userId = decodedData?.id;
-    } else {
-      decodedData = jwt.decode(token);
-
-      req.userId = decodedData?.sub;
-    }    
-
+    req.userId = jwt.verify(token, secret).id;
     next();
   } catch (error) {
-    console.log(error);
+    res.status(401).json({ message: "Session expired or invalid, please sign in again" });
   }
 };
 
